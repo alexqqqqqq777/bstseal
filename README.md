@@ -1,4 +1,4 @@
-# BST-SEAL
+# BST-SEAL™ *(patent pending)*
 
 **BST-SEAL** (Block-Structured, Table-SEALed) is an experimental loss-less data-compression codec written in Rust.
 It focuses on *blazing-fast* decode times on small/medium blocks while keeping compression ratios comparable to Zstandard.
