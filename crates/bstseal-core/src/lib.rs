@@ -7,6 +7,9 @@ pub mod huff;
 pub mod integrity;
 pub mod raw;
 pub mod utils;
+pub mod license;
+
+pub use license::{verify_license, Tier, set_license_secret};
 
 // Re-export key functions to make them available directly at the crate root,
 // e.g., `bstseal_core::encode_parallel()`

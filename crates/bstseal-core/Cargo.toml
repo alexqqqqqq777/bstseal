@@ -8,6 +8,10 @@ repository.workspace = true
 description = "Core compression and decompression logic for BST-SEAL."
 
 [dependencies]
+hmac = "0.12"
+sha2 = "0.10"
+base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+
 anyhow.workspace = true
 blake3.workspace = true
 byteorder.workspace = true
