@@ -391,6 +391,7 @@ struct BitReader<'a> {
     bit_pos: u8, // 0-7, from MSB to LSB
 }
 
+#[allow(dead_code)]
 impl<'a> BitReader<'a> {
     fn new(buffer: &'a [u8]) -> Self {
         Self { buffer, byte_pos: 0, bit_pos: 0 }

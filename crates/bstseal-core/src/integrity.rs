@@ -15,7 +15,6 @@
 //!
 //! This helper is **format-agnostic** – it can wrap any byte slice.
 
-use blake3::Hasher;
 use thiserror::Error;
 
 /// Size of the Blake3 hash in bytes.
