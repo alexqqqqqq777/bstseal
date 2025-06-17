@@ -39,6 +39,10 @@ jobs:
       - name: Audit
         run: cargo audit --deny warnings
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
       - uses: actions/setup-node@v4
         with:
           node-version: 16
@@ -46,6 +50,7 @@ jobs:
       - name: Test Node bindings
         run: |
           cd bindings/node
+          npm config set python python3
           npm ci --loglevel error
           node - <<'NODE'
           const bst = require('./');
