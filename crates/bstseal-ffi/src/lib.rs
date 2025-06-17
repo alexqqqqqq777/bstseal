@@ -27,6 +27,15 @@ unsafe fn alloc(len: usize) -> *mut u8 {
 }
 
 #[no_mangle]
+/// Compresses `input` and returns a newly allocated buffer containing
+/// the encoded bytes **plus integrity footer**.
+///
+/// On success returns [`ErrorCode::Ok`] (0) and sets `out_ptr` / `out_len`.
+///
+/// # Safety
+/// * `input` must point to `len` valid bytes.
+/// * `out_ptr` and `out_len` must be valid, non-null pointers.
+/// * Caller owns the returned buffer and must free it with [`bstseal_free`].
 pub unsafe extern "C" fn bstseal_encode(
     input: *const u8,
     len: usize,
@@ -49,6 +58,14 @@ pub unsafe extern "C" fn bstseal_encode(
 }
 
 #[no_mangle]
+/// Verifies integrity footer and decompresses `input`.
+///
+/// On success returns [`ErrorCode::Ok`] and sets `out_ptr` / `out_len`.
+///
+/// # Safety
+/// * `input` must point to `len` valid bytes produced by [`bstseal_encode`].
+/// * `out_ptr` and `out_len` must be valid, non-null pointers.
+/// * Caller owns the returned buffer and must free it with [`bstseal_free`].
 pub unsafe extern "C" fn bstseal_decode(
     input: *const u8,
     len: usize,
@@ -74,6 +91,10 @@ pub unsafe extern "C" fn bstseal_decode(
 }
 
 #[no_mangle]
+/// Frees a buffer allocated by [`bstseal_encode`] / [`bstseal_decode`].
+///
+/// # Safety
+/// * `ptr` must be a pointer previously obtained from those functions (or null).
 pub unsafe extern "C" fn bstseal_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         free(ptr);

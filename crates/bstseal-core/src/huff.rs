@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Huffman coding implementation with canonical codes and a fast lookup table for decoding.
 
 use anyhow::{anyhow, Result};
