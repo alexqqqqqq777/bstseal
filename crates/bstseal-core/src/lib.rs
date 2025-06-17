@@ -1,3 +1,6 @@
+#![allow(clippy::type_complexity)]
+#![allow(clippy::unnecessary_cast)]
+
 pub mod block_coder;
 pub mod integrity;
 pub mod encode;
