@@ -1,10 +1,10 @@
+use bstseal_core::encode::{decode_parallel, encode_parallel};
 use clap::Parser;
 use std::fs::{self, File};
-use std::io::{self, Read, Write, BufReader, BufWriter};
+use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 use std::time::Instant;
 use walkdir::WalkDir;
-use bstseal_core::encode::{decode_parallel, encode_parallel};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -59,9 +59,7 @@ enum Commands {
         out_dir: PathBuf,
     },
     /// Lists archive contents
-    List {
-        archive: PathBuf,
-    },
+    List { archive: PathBuf },
     /// Outputs single file to stdout
     Cat {
         archive: PathBuf,
@@ -170,14 +168,18 @@ const MAGIC: &[u8; 8] = b"BSTSEAL\0";
 struct IndexEntry {
     path: String,
     offset: u64,
-    size:   u64,
+    size: u64,
 }
 
 fn pack_archive(output: PathBuf, inputs: Vec<PathBuf>) -> anyhow::Result<()> {
     let mut files = Vec::new();
     for input in inputs {
         if input.is_dir() {
-            for entry in WalkDir::new(&input).into_iter().filter_map(Result::ok).filter(|e| e.path().is_file()) {
+            for entry in WalkDir::new(&input)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| e.path().is_file())
+            {
                 files.push(entry.path().to_path_buf());
             }
         } else {
@@ -195,7 +197,12 @@ fn pack_archive(output: PathBuf, inputs: Vec<PathBuf>) -> anyhow::Result<()> {
         BufReader::new(File::open(path)?).read_to_end(&mut buf)?;
         let compressed = encode_parallel(&buf)?;
         let with_footer = bstseal_core::integrity::add_footer(&compressed);
-        payloads.push((path.strip_prefix(&std::env::current_dir()?)?.to_string_lossy().to_string(), with_footer));
+        payloads.push((
+            path.strip_prefix(&std::env::current_dir()?)?
+                .to_string_lossy()
+                .to_string(),
+            with_footer,
+        ));
     }
 
     // Compute header length
@@ -269,7 +276,9 @@ fn unpack_archive(archive: PathBuf, out_dir: PathBuf) -> anyhow::Result<()> {
     let entries = read_index(&mut reader)?;
     for e in entries {
         let out_path = out_dir.join(&e.path);
-        if let Some(p) = out_path.parent() { fs::create_dir_all(p)?; }
+        if let Some(p) = out_path.parent() {
+            fs::create_dir_all(p)?;
+        }
         file.seek(SeekFrom::Start(e.offset))?;
         let mut compressed = vec![0u8; e.size as usize];
         file.read_exact(&mut compressed)?;
@@ -284,7 +293,9 @@ fn cat_file(archive: PathBuf, file_path: String) -> anyhow::Result<()> {
     let mut file = File::open(&archive)?;
     let mut reader = BufReader::new(&file);
     let entries = read_index(&mut reader)?;
-    let target = entries.into_iter().find(|e| e.path == file_path)
+    let target = entries
+        .into_iter()
+        .find(|e| e.path == file_path)
         .ok_or_else(|| anyhow::anyhow!("path not found in archive"))?;
     file.seek(SeekFrom::Start(target.offset))?;
     let mut compressed = vec![0u8; target.size as usize];
@@ -310,7 +321,15 @@ fn run_bench(sample: Option<PathBuf>) -> anyhow::Result<()> {
     let t1 = Instant::now();
     let _ = decode_parallel(&compressed)?;
     let decode_ms = t1.elapsed().as_secs_f64() * 1000.0;
-    println!("encode: {:.2} ms ({:.1} MB/s)", encode_ms, data.len() as f64 / 1e6 / (encode_ms/1000.0));
-    println!("decode: {:.2} ms ({:.1} MB/s)", decode_ms, data.len() as f64 / 1e6 / (decode_ms/1000.0));
+    println!(
+        "encode: {:.2} ms ({:.1} MB/s)",
+        encode_ms,
+        data.len() as f64 / 1e6 / (encode_ms / 1000.0)
+    );
+    println!(
+        "decode: {:.2} ms ({:.1} MB/s)",
+        decode_ms,
+        data.len() as f64 / 1e6 / (decode_ms / 1000.0)
+    );
     Ok(())
 }

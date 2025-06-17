@@ -25,7 +25,10 @@ pub enum IntegrityError {
     #[error("file is smaller than integrity footer ({HASH_SIZE} bytes)")]
     TooSmall,
     #[error("checksum mismatch: expected {expected:?}, got {actual:?}")]
-    Mismatch { expected: [u8; HASH_SIZE], actual: [u8; HASH_SIZE] },
+    Mismatch {
+        expected: [u8; HASH_SIZE],
+        actual: [u8; HASH_SIZE],
+    },
 }
 
 /// Returns a new Vec consisting of `data` followed by its Blake3 digest.
@@ -52,7 +55,10 @@ pub fn verify_footer(data: &[u8]) -> Result<&[u8], IntegrityError> {
     if expected_arr == actual_arr {
         Ok(payload)
     } else {
-        Err(IntegrityError::Mismatch { expected: expected_arr, actual: actual_arr })
+        Err(IntegrityError::Mismatch {
+            expected: expected_arr,
+            actual: actual_arr,
+        })
     }
 }
 

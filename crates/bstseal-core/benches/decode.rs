@@ -1,5 +1,5 @@
-use bstseal_core::block_coder::{encode_block, decode_block};
-use criterion::{criterion_group, criterion_main, Criterion, black_box};
+use bstseal_core::block_coder::{decode_block, encode_block};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn bench_decode(c: &mut Criterion) {
     // 4 KB сжимаемый буфер (динамически гарантируем размер ≥ 4096)

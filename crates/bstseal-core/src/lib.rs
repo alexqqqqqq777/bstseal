@@ -2,9 +2,9 @@
 #![allow(clippy::unnecessary_cast)]
 
 pub mod block_coder;
-pub mod integrity;
 pub mod encode;
 pub mod huff;
+pub mod integrity;
 pub mod raw;
 pub mod utils;
 

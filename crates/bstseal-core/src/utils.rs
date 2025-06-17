@@ -24,7 +24,8 @@ pub fn read_varint_u64(r: &[u8]) -> Option<(u64, usize)> {
     let mut value = 0u64;
     let mut shift = 0;
     for (i, &byte) in r.iter().enumerate() {
-        if i >= 10 { // Max 10 bytes for u64
+        if i >= 10 {
+            // Max 10 bytes for u64
             return None;
         }
         let val_part = (byte & 0x7F) as u64;

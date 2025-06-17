@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "bstseal-cli"
-version = "1.0.0-rc1"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "bstseal-core",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "bstseal-core"
-version = "1.0.0-rc1"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "blake3",

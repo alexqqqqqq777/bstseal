@@ -51,10 +51,10 @@ pub fn encode_block(input: &[u8]) -> Result<Vec<u8>> {
         // Huffman was successful and produced a smaller output.
         let mut final_block = Vec::with_capacity(1 + 10 + huff_encoded.len()); // +10 for varint
         final_block.push(BlockType::Huffman as u8);
-        
+
         // Добавляем размер исходных данных как VarInt
         crate::utils::write_varint_u64(&mut final_block, input.len() as u64)?;
-        
+
         final_block.extend_from_slice(&huff_encoded);
         Ok(final_block)
     } else {
@@ -87,7 +87,11 @@ pub fn decode_block(input: &[u8]) -> Result<Vec<u8>> {
                 .ok_or_else(|| anyhow!("Failed to read varint for expected size"))?;
 
             let mut out = Vec::with_capacity(expected_size as usize);
-            huff::decode(&payload[bytes_read..], &mut out, Some(expected_size as usize))?;
+            huff::decode(
+                &payload[bytes_read..],
+                &mut out,
+                Some(expected_size as usize),
+            )?;
             Ok(out)
         }
     }

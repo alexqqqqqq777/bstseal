@@ -5,6 +5,9 @@ fn main() {
     let dec = bstseal_core::block_coder::decode_block(&enc).unwrap();
     println!("decoded len {} orig len {}", dec.len(), data.len());
     if dec != data {
-        println!("Mismatch at pos {:?}", dec.iter().zip(&data).position(|(a,b)| a!=b));
+        println!(
+            "Mismatch at pos {:?}",
+            dec.iter().zip(&data).position(|(a, b)| a != b)
+        );
     }
 }

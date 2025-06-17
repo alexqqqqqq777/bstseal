@@ -3,12 +3,12 @@
 
 use anyhow::{anyhow, Result};
 use byteorder::{ReadBytesExt, WriteBytesExt};
+use once_cell::sync::Lazy;
 use std::collections::BinaryHeap;
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::ptr;
 use std::sync::{Arc, RwLock};
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
 
 const MAX_CODE_LEN: usize = 15;
 // Number of bits used for the fast Huffman decode lookup table.
@@ -17,7 +17,8 @@ const MAX_CODE_LEN: usize = 15;
 const FAST_DECODE_BITS: usize = 16;
 const TABLE_SIZE: usize = 1 << FAST_DECODE_BITS;
 const CACHE_LIMIT: usize = 32;
-static CODE_CACHE: Lazy<RwLock<HashMap<Vec<u8>, Arc<Vec<FastDecodeEntry>>>>> = Lazy::new(|| RwLock::new(HashMap::new()));
+static CODE_CACHE: Lazy<RwLock<HashMap<Vec<u8>, Arc<Vec<FastDecodeEntry>>>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct HuffCode {
@@ -40,11 +41,7 @@ pub struct CanonicalCode {
 impl CanonicalCode {
     pub fn new(freqs: &[u64; 256]) -> Result<Self> {
         let mut code_lengths = [0u8; 256];
-        let active_symbols: Vec<_> = freqs
-            .iter()
-            .enumerate()
-            .filter(|&(_, &f)| f > 0)
-            .collect();
+        let active_symbols: Vec<_> = freqs.iter().enumerate().filter(|&(_, &f)| f > 0).collect();
 
         if active_symbols.is_empty() {
             return Self::from_lengths(&[0; 256]);
@@ -59,7 +56,11 @@ impl CanonicalCode {
                 heap.push(std::cmp::Reverse((freq, vec![symbol as u8])));
             }
 
-            let mut combined: Vec<_> = heap.into_vec().into_iter().map(|r| (r.0 .0, r.0 .1)).collect();
+            let mut combined: Vec<_> = heap
+                .into_vec()
+                .into_iter()
+                .map(|r| (r.0 .0, r.0 .1))
+                .collect();
 
             while combined.len() > 1 {
                 combined.sort_by_key(|k| std::cmp::Reverse(k.0));
@@ -93,7 +94,11 @@ impl CanonicalCode {
         let mut bl_count = [0u32; MAX_CODE_LEN + 1];
         for &len in lengths.iter() {
             if len as usize > MAX_CODE_LEN {
-                return Err(anyhow!("Code length {} exceeds MAX_CODE_LEN {}", len, MAX_CODE_LEN));
+                return Err(anyhow!(
+                    "Code length {} exceeds MAX_CODE_LEN {}",
+                    len,
+                    MAX_CODE_LEN
+                ));
             }
             if len > 0 {
                 bl_count[len as usize] += 1;
@@ -110,14 +115,20 @@ impl CanonicalCode {
         for i in 0..256 {
             let len = lengths[i];
             if len > 0 {
-                codes[i] = HuffCode { code: next_code[len as usize], len };
+                codes[i] = HuffCode {
+                    code: next_code[len as usize],
+                    len,
+                };
                 next_code[len as usize] += 1;
             }
         }
 
         let fast_decode_table = Arc::new(Self::build_fast_decode_table(&codes));
 
-        Ok(Self { codes, fast_decode_table })
+        Ok(Self {
+            codes,
+            fast_decode_table,
+        })
     }
 
     fn build_fast_decode_table(codes: &[HuffCode; 256]) -> Vec<FastDecodeEntry> {
@@ -131,7 +142,10 @@ impl CanonicalCode {
                 for i in 0..num_entries {
                     let index = (start_code + i as u32) as usize;
                     if index < TABLE_SIZE {
-                        table[index] = FastDecodeEntry { symbol: symbol as u8, len: hc.len };
+                        table[index] = FastDecodeEntry {
+                            symbol: symbol as u8,
+                            len: hc.len,
+                        };
                     }
                 }
             }
@@ -145,7 +159,10 @@ impl CanonicalCode {
     }
 
     pub fn write_lengths<W: Write>(&self, writer: &mut W) -> Result<()> {
-        let non_zero: Vec<_> = self.codes.iter().enumerate()
+        let non_zero: Vec<_> = self
+            .codes
+            .iter()
+            .enumerate()
             .filter(|(_, hc)| hc.len > 0)
             .collect();
         writer.write_u8(non_zero.len() as u8)?;
@@ -187,7 +204,10 @@ impl CanonicalCode {
                     for i in 0..256 {
                         let len = lengths[i];
                         if len > 0 {
-                            codes[i] = HuffCode { code: next_code[len as usize], len };
+                            codes[i] = HuffCode {
+                                code: next_code[len as usize],
+                                len,
+                            };
                             next_code[len as usize] += 1;
                         }
                     }
@@ -286,7 +306,11 @@ pub fn decode(input: &[u8], out: &mut Vec<u8>, expected_size: Option<usize>) -> 
 
         // Если осталось менее 16 бит — резервный медленный декодер.
         if total_bits - bits_consumed < FAST_DECODE_BITS {
-            let mut br = BitReader { buffer: bit_buf, byte_pos, bit_pos };
+            let mut br = BitReader {
+                buffer: bit_buf,
+                byte_pos,
+                bit_pos,
+            };
             match decode_slow(&mut br, &huff_tree.codes) {
                 Some(sym) => {
                     out.push(sym);
@@ -306,7 +330,11 @@ pub fn decode(input: &[u8], out: &mut Vec<u8>, expected_size: Option<usize>) -> 
             let entry = &huff_tree.fast_decode_table[idx];
             if entry.len == 0 {
                 // fallback (очень редко)
-                let mut br = BitReader { buffer: bit_buf, byte_pos, bit_pos };
+                let mut br = BitReader {
+                    buffer: bit_buf,
+                    byte_pos,
+                    bit_pos,
+                };
                 if let Some(sym) = decode_slow(&mut br, &huff_tree.codes) {
                     out.push(sym);
                     decoded += 1;
@@ -322,7 +350,9 @@ pub fn decode(input: &[u8], out: &mut Vec<u8>, expected_size: Option<usize>) -> 
                 byte_pos += (bit_pos >> 3) as usize;
                 bit_pos &= 7;
             }
-            if decoded >= expect { break; }
+            if decoded >= expect {
+                break;
+            }
         }
     }
 
@@ -355,10 +385,14 @@ struct BitWriter {
 
 impl BitWriter {
     fn new() -> Self {
-        Self { buffer: Vec::new(), current_byte: 0, bit_pos: 0 }
+        Self {
+            buffer: Vec::new(),
+            current_byte: 0,
+            bit_pos: 0,
+        }
     }
 
-        fn write(&mut self, bits: u16, mut len: u8) {
+    fn write(&mut self, bits: u16, mut len: u8) {
         while len > 0 {
             let bits_to_write = (8 - self.bit_pos).min(len);
             let mask = (1u16 << bits_to_write) - 1;
@@ -395,7 +429,11 @@ struct BitReader<'a> {
 #[allow(dead_code)]
 impl<'a> BitReader<'a> {
     fn new(buffer: &'a [u8]) -> Self {
-        Self { buffer, byte_pos: 0, bit_pos: 0 }
+        Self {
+            buffer,
+            byte_pos: 0,
+            bit_pos: 0,
+        }
     }
 
     #[inline(always)]
@@ -406,7 +444,7 @@ impl<'a> BitReader<'a> {
                 return None;
             }
             let bits_to_read = (8 - self.bit_pos).min(len);
-                        let mask = ((1u16 << bits_to_read) - 1) as u8;
+            let mask = ((1u16 << bits_to_read) - 1) as u8;
             let chunk = (self.buffer[self.byte_pos] >> (8 - self.bit_pos - bits_to_read)) & mask;
 
             val = (val << bits_to_read) | chunk as u16;
