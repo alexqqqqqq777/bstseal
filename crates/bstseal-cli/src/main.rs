@@ -215,8 +215,8 @@ fn pack_archive(output: PathBuf, inputs: Vec<PathBuf>) -> anyhow::Result<()> {
         header.write_u16::<LittleEndian>(path_bytes.len() as u16)?;
         header.extend_from_slice(path_bytes);
         header.write_u64::<LittleEndian>(offset_acc)?;
-        header.write_u64::<LittleEndian>(data.len() as u64)?;
-        offset_acc += data.len() as u64;
+        header.write_u64::<LittleEndian>(_data.len() as u64)?;
+        offset_acc += _data.len() as u64;
     }
 
     // Write archive file
