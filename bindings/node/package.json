@@ -6,6 +6,12 @@
   "scripts": {
     "install": "node build.js"
   },
+  "overrides": {
+    "ffi-napi": {
+      "node-addon-api": "^7.0.0",
+      "get-uv-event-loop-napi-h": "^2.0.1"
+    }
+  },
   "dependencies": {
     "ffi-napi": "^4.0.3",
     "ref-napi": "^3.0.3"
