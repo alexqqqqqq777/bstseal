@@ -201,7 +201,7 @@ fn pack_archive(output: PathBuf, inputs: Vec<PathBuf>) -> anyhow::Result<()> {
     // Compute header length
     let entry_count = payloads.len() as u32;
     let mut header_len: usize = 8 + 4; // MAGIC + count
-    for (path_str, data) in &payloads {
+    for (path_str, _data) in &payloads {
         header_len += 2 + path_str.len() + 8 + 8;
     }
 
@@ -210,7 +210,7 @@ fn pack_archive(output: PathBuf, inputs: Vec<PathBuf>) -> anyhow::Result<()> {
     header.extend_from_slice(MAGIC);
     header.write_u32::<LittleEndian>(entry_count)?;
     let mut offset_acc = header_len as u64;
-    for (path_str, data) in &payloads {
+    for (path_str, _data) in &payloads {
         let path_bytes = path_str.as_bytes();
         header.write_u16::<LittleEndian>(path_bytes.len() as u16)?;
         header.extend_from_slice(path_bytes);
@@ -229,7 +229,7 @@ fn pack_archive(output: PathBuf, inputs: Vec<PathBuf>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn read_index(mut reader: &mut (impl Read + Seek)) -> anyhow::Result<Vec<IndexEntry>> {
+fn read_index(reader: &mut (impl Read + Seek)) -> anyhow::Result<Vec<IndexEntry>> {
     let mut magic = [0u8; 8];
     reader.read_exact(&mut magic)?;
     if &magic != MAGIC {
@@ -252,7 +252,7 @@ fn read_index(mut reader: &mut (impl Read + Seek)) -> anyhow::Result<Vec<IndexEn
 fn list_archive(archive: PathBuf) -> anyhow::Result<()> {
     let mut file = BufReader::new(File::open(archive)?);
     let entries = read_index(&mut file)?;
-    println!("{:<8} {:<12} {}", "Offset", "Size", "Path");
+    println!("{:<8} {:<12} Path", "Offset", "Size");
     for e in entries {
         println!("{:<8} {:<12} {}", e.offset, e.size, e.path);
     }
