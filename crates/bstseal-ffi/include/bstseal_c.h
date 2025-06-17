@@ -15,6 +15,7 @@ typedef enum {
     BSTSEAL_DECODE_FAIL = 3,
     BSTSEAL_INTEGRITY_FAIL = 4,
     BSTSEAL_ALLOC_FAIL = 5,
+    BSTSEAL_LICENSE_ERROR = 6,
 } bstseal_error;
 
 // Compresses `input[0..len)` into newly allocated buffer.
@@ -29,6 +30,11 @@ int bstseal_decode(const uint8_t* input, size_t len,
 
 // Frees memory returned from encode/decode.
 void bstseal_free(void* ptr);
+
+// Sets license secret at runtime.
+int bstseal_set_license_secret(const char* secret);
+// Sets license key at runtime.
+int bstseal_set_license_key(const char* key);
 
 #ifdef __cplusplus
 } // extern "C"

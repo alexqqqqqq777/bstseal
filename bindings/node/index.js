@@ -23,6 +23,8 @@ const lib = ffi.Library(libPath(), {
   bstseal_encode: ['int', [u8Ptr, sizeT, ref.refType(u8Ptr), ref.refType(sizeT)]],
   bstseal_decode: ['int', [u8Ptr, sizeT, ref.refType(u8Ptr), ref.refType(sizeT)]],
   bstseal_free: ['void', [voidPtr]],
+  bstseal_set_license_secret: ['int', ['string']],
+  bstseal_set_license_key: ['int', ['string']],
 });
 
 function callAndReturn(func, inputBuf) {
@@ -41,6 +43,18 @@ function callAndReturn(func, inputBuf) {
   return result;
 }
 
+function check(code, fn) {
+  if (code !== 0) throw new Error(`${fn} failed with code ${code}`);
+}
+
+// Auto-initialize secret/key if env vars present
+if (process.env.LICENSE_SECRET) {
+  check(lib.bstseal_set_license_secret(process.env.LICENSE_SECRET), 'bstseal_set_license_secret');
+}
+if (process.env.BSTSEAL_LICENSE) {
+  check(lib.bstseal_set_license_key(process.env.BSTSEAL_LICENSE), 'bstseal_set_license_key');
+}
+
 module.exports = {
   encode(buffer) {
     if (!Buffer.isBuffer(buffer)) throw new TypeError('buffer must be a Buffer');
@@ -49,5 +63,11 @@ module.exports = {
   decode(buffer) {
     if (!Buffer.isBuffer(buffer)) throw new TypeError('buffer must be a Buffer');
     return callAndReturn('bstseal_decode', buffer);
+  },
+  setLicenseSecret(secret) {
+    check(lib.bstseal_set_license_secret(secret), 'bstseal_set_license_secret');
+  },
+  setLicenseKey(key) {
+    check(lib.bstseal_set_license_key(key), 'bstseal_set_license_key');
   },
 };

@@ -11,6 +11,8 @@ description = "Core compression and decompression logic for BST-SEAL."
 hmac = "0.12"
 sha2 = "0.10"
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+dirs = "5"
 
 anyhow.workspace = true
 blake3.workspace = true

@@ -34,7 +34,7 @@ impl Tier {
 }
 
 /// Errors that can occur during license verification.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum LicenseError {
     #[error("license string format is invalid")]
     Format,
@@ -42,13 +42,18 @@ pub enum LicenseError {
     Signature,
     #[error("license secret not configured (env LICENSE_SECRET or compile-time variable)")]
     MissingSecret,
+    #[error("license key not provided (env BSTSEAL_LICENSE or runtime call)")]
+    MissingKey,
+    #[error("license key expired")] Expired,
 }
 
 static RUNTIME_SECRET: OnceCell<String> = OnceCell::new();
+static RUNTIME_LICENSE: OnceCell<String> = OnceCell::new();
 
 /// Allow libraries / binaries that link to bstseal-core to set the shared
 /// secret at runtime (e.g. via FFI).
 /// Returns `true` if the secret was set, `false` if it was already set before.
+/// Set shared HMAC secret at runtime.
 pub fn set_license_secret<S: Into<String>>(secret: S) -> bool {
     RUNTIME_SECRET.set(secret.into()).is_ok()
 }
@@ -70,20 +75,44 @@ fn get_secret() -> Result<String, LicenseError> {
     Err(LicenseError::MissingSecret)
 }
 
+/// Get license string from runtime, env, or error.
+fn get_license() -> Result<String, LicenseError> {
+    use std::fs;
+    if let Some(k) = RUNTIME_LICENSE.get() {
+        return Ok(k.clone());
+    }
+    if let Ok(env) = std::env::var("BSTSEAL_LICENSE") {
+        return Ok(env);
+    }
+    // fallback to ~/.bstseal/license
+    if let Some(home) = dirs::home_dir() {
+        let path = home.join(".bstseal").join("license");
+        if let Ok(data) = fs::read_to_string(path) {
+            let trimmed = data.trim();
+            if !trimmed.is_empty() {
+                return Ok(trimmed.to_string());
+            }
+        }
+    }
+    Err(LicenseError::MissingKey)
+}
+
+
 /// Verify a license string and return the encoded tier on success.
 ///
 /// License format: `<uuid>.<tier>.<signature>` where
 /// `signature = base64url(HMAC_SHA256("<uuid>.<tier>", LICENSE_SECRET))`
 pub fn verify_license(license: &str) -> Result<Tier, LicenseError> {
-    let mut parts = license.split('.').collect::<Vec<_>>();
-    if parts.len() != 3 {
+    let parts: Vec<&str> = license.split('.').collect();
+    if parts.len() < 4 {
         return Err(LicenseError::Format);
     }
-    let sig_provided = parts.pop().unwrap();
-    let tier_str = parts.pop().unwrap();
-    let uuid_part = parts.pop().unwrap();
+    let sig_provided = *parts.last().unwrap();
+    let uuid_part = parts[0];
+    let tier_str = parts[1];
+    let expires_iso = parts[2..parts.len()-1].join(".");
 
-    let data = format!("{uuid_part}.{tier_str}");
+    let data = format!("{uuid_part}.{tier_str}.{expires_iso}");
     let secret = get_secret()?;
 
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
@@ -95,7 +124,31 @@ pub fn verify_license(license: &str) -> Result<Tier, LicenseError> {
         return Err(LicenseError::Signature);
     }
 
+    // expiry check
+    let expires_at = chrono::DateTime::parse_from_rfc3339(&expires_iso)
+        .map_err(|_| LicenseError::Format)?
+        .with_timezone(&chrono::Utc);
+    if chrono::Utc::now() > expires_at {
+        return Err(LicenseError::Expired);
+    }
+
     Ok(Tier::from_str(tier_str))
+}
+
+use once_cell::sync::Lazy;
+static LICENSE_CHECK: Lazy<Result<Tier, LicenseError>> = Lazy::new(|| {
+    let lic = get_license()?;
+    verify_license(&lic)
+});
+
+/// Ensure license was verified successfully; returns Tier or error.
+pub fn ensure_license_valid() -> Result<Tier, LicenseError> {
+    (*LICENSE_CHECK).clone()
+}
+
+/// Set license key at runtime.
+pub fn set_license_key<S: Into<String>>(key: S) -> bool {
+    RUNTIME_LICENSE.set(key.into()).is_ok()
 }
 
 #[cfg(test)]
@@ -105,8 +158,10 @@ mod tests {
 
     /// helper to generate license inside tests
     fn make_license(tier: &str, secret: &str) -> String {
+        use chrono::{Duration, Utc};
         let uuid = "123e4567-e89b-12d3-a456-426614174000";
-        let data = format!("{uuid}.{tier}");
+        let expires = (Utc::now() + Duration::days(365)).to_rfc3339();
+        let data = format!("{uuid}.{tier}.{expires}");
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
         mac.update(data.as_bytes());
         let sig = URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes());
@@ -115,7 +170,7 @@ mod tests {
 
     #[test]
     fn verify_roundtrip() {
-        let secret = "test_secret";
+        let secret = "abc";
         set_license_secret(secret.to_string());
         let lic = make_license("solo", secret);
         let tier = verify_license(&lic).unwrap();

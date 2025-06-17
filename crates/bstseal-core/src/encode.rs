@@ -7,6 +7,9 @@ use rayon::prelude::*;
 ///
 /// Each encoded block is prefixed with a varint indicating its size.
 pub fn encode_parallel(input: &[u8]) -> Result<Vec<u8>> {
+    // Ensure license is valid before proceeding (skip in unit tests)
+    #[cfg(not(test))]
+    crate::license::ensure_license_valid().map_err(|e| anyhow!(e))?;
     if input.is_empty() {
         return Ok(Vec::new());
     }
@@ -31,6 +34,8 @@ pub fn encode_parallel(input: &[u8]) -> Result<Vec<u8>> {
 /// It reads a sequence of blocks, each prefixed with a varint length header,
 /// and decodes them, reassembling the original data.
 pub fn decode_parallel(encoded_data: &[u8]) -> Result<Vec<u8>> {
+    #[cfg(not(test))]
+    crate::license::ensure_license_valid().map_err(|e| anyhow!(e))?;
     if encoded_data.is_empty() {
         return Ok(Vec::new());
     }

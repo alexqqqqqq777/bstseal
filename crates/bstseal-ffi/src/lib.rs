@@ -10,7 +10,7 @@ use bstseal_core::{
     encode::{decode_parallel, encode_parallel},
     integrity,
 };
-use libc::{c_int, c_void, free, malloc};
+use libc::{c_int, c_void, c_char, free, malloc};
 use std::slice;
 
 #[repr(i32)]
@@ -22,6 +22,7 @@ pub enum ErrorCode {
     DecodeFail = 3,
     IntegrityFail = 4,
     AllocFail = 5,
+    LicenseError = 6,
 }
 
 unsafe fn alloc(len: usize) -> *mut u8 {
@@ -113,5 +114,43 @@ pub unsafe extern "C" fn bstseal_decode(
 pub unsafe extern "C" fn bstseal_free(ptr: *mut c_void) {
     if !ptr.is_null() {
         free(ptr);
+    }
+}
+
+#[no_mangle]
+/// Sets license secret at runtime.
+/// Returns 0 on success.
+/// # Safety
+/// * `secret` must be a valid null-terminated UTF-8 string or NULL.
+pub unsafe extern "C" fn bstseal_set_license_secret(secret: *const c_char) -> c_int {
+    if secret.is_null() {
+        return ErrorCode::NullPointer as c_int;
+    }
+    let c_str = std::ffi::CStr::from_ptr(secret);
+    match c_str.to_str() {
+        Ok(s) => {
+            bstseal_core::license::set_license_secret(s.to_string());
+            ErrorCode::Ok as c_int
+        }
+        Err(_) => ErrorCode::LicenseError as c_int,
+    }
+}
+
+#[no_mangle]
+/// Sets license key at runtime.
+/// Returns 0 on success.
+/// # Safety
+/// * `key` must be a valid null-terminated UTF-8 string or NULL.
+pub unsafe extern "C" fn bstseal_set_license_key(key: *const c_char) -> c_int {
+    if key.is_null() {
+        return ErrorCode::NullPointer as c_int;
+    }
+    let c_str = std::ffi::CStr::from_ptr(key);
+    match c_str.to_str() {
+        Ok(k) => {
+            bstseal_core::license::set_license_key(k.to_string());
+            ErrorCode::Ok as c_int
+        }
+        Err(_) => ErrorCode::LicenseError as c_int,
     }
 }
