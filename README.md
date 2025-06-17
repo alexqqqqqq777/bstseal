@@ -93,4 +93,6 @@ Benchmarks
 
 License
 -------
-MIT OR Apache-2.0 at your option.
+Open-source core: **MIT OR Apache-2.0** (dual-licensed).
+
+Need to embed BST-SEAL in a closed-source or revenue-generating product?  A **Commercial License** is available – see [`LICENSE_COMMERCIAL.md`](LICENSE_COMMERCIAL.md) and the [Pricing table](PRICING.md).
