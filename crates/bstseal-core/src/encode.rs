@@ -13,7 +13,7 @@ pub fn encode_parallel(input: &[u8]) -> Result<Vec<u8>> {
 
     let results: Vec<Result<Vec<u8>>> = input
         .par_chunks(BLOCK_SIZE)
-        .map(|chunk| block_coder::encode_block(chunk))
+        .map(block_coder::encode_block)
         .collect();
 
     let mut final_data = Vec::new();
@@ -61,7 +61,7 @@ pub fn decode_parallel(encoded_data: &[u8]) -> Result<Vec<u8>> {
     let total_len: usize = decoded_parts.iter().map(|(_, v)| v.len()).sum();
     let mut out = Vec::with_capacity(total_len);
     for (_, mut part) in decoded_parts {
-        out.extend(part.drain(..));
+        out.append(&mut part);
     }
     Ok(out)
 }

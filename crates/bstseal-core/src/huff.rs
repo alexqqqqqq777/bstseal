@@ -452,6 +452,7 @@ impl<'a> BitReader<'a> {
         val
     }
 
+    #[allow(dead_code)]
     #[inline(always)]
     fn consume(&mut self, len: u8) -> bool {
         let new_bit_pos = self.byte_pos * 8 + self.bit_pos as usize + len as usize;
