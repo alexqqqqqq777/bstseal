@@ -1,0 +1,27 @@
+[package]
+name = "bstseal-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core compression and decompression logic for BST-SEAL."
+
+[dependencies]
+anyhow.workspace = true
+blake3.workspace = true
+byteorder.workspace = true
+bytes.workspace = true
+log.workspace = true
+rayon.workspace = true
+once_cell.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.10"
+rand = "0.8"
+
+[[bench]]
+name = "decode"
+harness = false

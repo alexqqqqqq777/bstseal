@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write # for uploading release assets
+
+jobs:
+  linux:
+    name: linux (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Build CLI
+        run: cargo build --locked --release --bin bstseal
+      - name: Package binary
+        run: |
+          tar -czf bstseal-cli-x86_64-linux.tar.gz -C target/release bstseal
+      - name: Pack Node module & Unity
+        run: |
+          npm --prefix bindings/node ci --silent
+          npm --prefix bindings/node pack
+          mv bindings/node/*.tgz bstseal-node-${{ github.ref_name }}.tgz
+          zip -r bstseal-unity-${{ github.ref_name }}.unitypackage bindings/unity
+      - name: Upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          draft: true
+          files: |
+            bstseal-cli-x86_64-linux.tar.gz
+            bstseal-node-${{ github.ref_name }}.tgz
+            bstseal-unity-${{ github.ref_name }}.unitypackage
+
+  windows:
+    name: windows (x86_64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Build CLI
+        shell: powershell
+        run: cargo build --locked --release --bin bstseal
+      - name: Package binary
+        shell: powershell
+        run: |
+          Compress-Archive -Path target/release/bstseal.exe -DestinationPath bstseal-cli-x86_64-windows.zip
+      - name: Upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          draft: true
+          files: bstseal-cli-x86_64-windows.zip
+
+  macos:
+    name: macOS (Apple Silicon)
+    runs-on: macos-14
+    env:
+      TARGET: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Add target
+        run: rustup target add $TARGET
+      - name: Build CLI
+        run: cargo build --locked --release --bin bstseal --target $TARGET
+      - name: Package binary
+        run: |
+          tar -czf bstseal-cli-aarch64-macos.tar.gz -C target/$TARGET/release bstseal
+      - name: Upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          draft: true
+          files: bstseal-cli-aarch64-macos.tar.gz

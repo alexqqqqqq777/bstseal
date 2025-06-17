@@ -1,0 +1,21 @@
+[package]
+name = "bstseal-cli"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line interface for the BST-SEAL compressor."
+
+[[bin]]
+name = "bstseal"
+path = "src/main.rs"
+
+[dependencies]
+bstseal-core = { path = "../bstseal-core" }
+anyhow.workspace = true
+clap = { workspace = true, features = ["derive"] }
+env_logger.workspace = true
+log.workspace = true
+walkdir.workspace = true
+byteorder.workspace = true

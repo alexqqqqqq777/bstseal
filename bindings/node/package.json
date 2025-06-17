@@ -1,0 +1,13 @@
+{
+  "name": "bstseal",
+  "version": "1.0.0",
+  "description": "Node.js bindings for BST-SEAL compressor",
+  "main": "index.js",
+  "scripts": {
+    "install": "node build.js"
+  },
+  "dependencies": {
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3"
+  }
+}

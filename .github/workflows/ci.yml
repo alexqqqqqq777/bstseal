@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build & test (release)
+        run: cargo test --workspace --release
+      - name: Lints
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Audit
+        run: cargo audit --deny warnings
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Test Node bindings
+        run: |
+          cd bindings/node
+          npm ci --loglevel error
+          node - <<'NODE'
+          const bst = require('./');
+          const input = Buffer.from('hello world');
+          const enc = bst.encode(input);
+          const dec = bst.decode(enc);
+          if (dec.toString() !== 'hello world') throw new Error('Decode mismatch');
+          console.log('Node bindings test passed');
+          NODE
+      - name: Bench decode 4k
+        run: |
+          cargo bench -p bstseal-core decode -- --quick --output-format bencher | tee bench.txt
+          ENC=$(grep 'time:' bench.txt | awk '{print $2}')

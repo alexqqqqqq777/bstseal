@@ -1,0 +1,17 @@
+This is a sample file for testing the bstseal compression utility.
+It contains some repetitive text to see how well the compression works.
+Sample sample sample sample sample.
+Test test test test test.
+Compress compress compress compress compress.
+1234567890abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+!@#$%^&*()_+{}":?><
+This is a sample file for testing the bstseal compression utility.
+It contains some repetitive text to see how well the compression works.
+Sample sample sample sample sample.
+Test test test test test.
+Compress compress compress compress compress.
+1234567890abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+!@#$%^&*()_+{}":?><
+End of sample data.
