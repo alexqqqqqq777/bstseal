@@ -66,12 +66,17 @@ enum Commands {
         /// Path inside archive
         file: String,
     },
+    /// Activates license key for current user
+    Login {
+        /// License key string
+        key: String,
+    },
     /// Runs micro-benchmark
     Bench {
         /// Optional sample file
         #[clap(short, long)]
         file: Option<PathBuf>,
-    },
+    }
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -82,6 +87,40 @@ fn main() -> Result<(), anyhow::Error> {
         Commands::Unpack { archive, out_dir } => unpack_archive(archive, out_dir)?,
         Commands::List { archive } => list_archive(archive)?,
         Commands::Cat { archive, file } => cat_file(archive, file)?,
+        Commands::Login { key } => {
+            use chrono::{DateTime, Utc};
+            use std::fs;
+            // verify key first
+            match bstseal_core::license::verify_license(&key) {
+                Ok(tier) => {
+                    // parse expiry for display
+                    let parts: Vec<&str> = key.split('.').collect();
+                    let expires_iso = parts[2..parts.len() - 1].join(".");
+                    let expires: DateTime<Utc> = DateTime::parse_from_rfc3339(&expires_iso)
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .unwrap_or_else(|_| Utc::now());
+
+                    // write to ~/.bstseal/license
+                    let path = dirs::home_dir()
+                        .unwrap_or_else(|| std::path::PathBuf::from("."))
+                        .join(".bstseal");
+                    fs::create_dir_all(&path)?;
+                    let file_path = path.join("license");
+                    fs::write(&file_path, &key)?;
+
+                    println!(
+                        "License activated: tier={}, expires={} (saved to {})",
+                        tier.as_str(),
+                        expires.format("%Y-%m-%d"),
+                        file_path.display()
+                    );
+                }
+                Err(e) => {
+                    eprintln!("Invalid license: {e}");
+                    std::process::exit(1);
+                }
+            }
+        },
         Commands::Bench { file } => run_bench(file)?,
         Commands::Encode { input, output } => {
             println!("Encoding file: {:?} to {:?}", input, output);
